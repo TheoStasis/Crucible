@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import MissionHeader from "@/components/dashboard/MissionHeader";
-import MissionTimeline from "@/components/dashboard/MissionTimeline";
 import ExecutionTarget from "@/components/dashboard/ExecutionTarget";
-import IncidentSummary from "@/components/dashboard/IncidentSummary";
 import AgentWarRoom, { LogItem } from "@/components/dashboard/AgentWarRoom";
 import CodeEditor from "@/components/dashboard/CodeEditor";
 
@@ -197,37 +195,27 @@ export default function DemoPage() {
           recoveryTime={recoveryTime}
         />
 
-        {/* Live Lifecycle Timeline */}
-        <MissionTimeline
-          status={status}
-          logs={logs.map((l) => `[${l.agent}] ${l.msg}`)}
-          isTyping={isTyping}
-        />
-
-        {/* 12-Column Dashboard Workspace */}
-        <main className="flex-1 grid grid-cols-12 gap-4 overflow-hidden min-h-0 pb-2">
+        {/* 2-Column Dashboard Workspace */}
+        <main className="flex-1 grid grid-cols-2 gap-6 overflow-hidden min-h-0 pb-4 mt-6">
           
-          {/* Left Console Pane (col-span-4 / 33% width) */}
-          <ExecutionTarget
-            status={status}
-            handleRegister={handleRegister}
-          />
+          {/* Left Column (50% width) - Hosted Repository Preview */}
+          <div className="flex flex-col overflow-hidden h-full min-h-0">
+            <ExecutionTarget
+              status={status}
+              handleRegister={handleRegister}
+            />
+          </div>
 
-          {/* Right Intelligence Area (col-span-8 / 66% width) */}
-          <div className="col-span-12 lg:col-span-8 flex flex-col gap-4 overflow-hidden h-full min-h-0">
+          {/* Right Column (50% width) - Intelligence Area */}
+          <div className="flex flex-col gap-6 overflow-hidden h-full min-h-0">
             
-            {/* Top row: Side-by-side War Room and Incident Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0 min-h-0">
-              <div className="md:col-span-2">
-                <AgentWarRoom logs={logs} />
-              </div>
-              <div className="md:col-span-1">
-                <IncidentSummary status={status} logs={logs.map((l) => `[${l.agent}] ${l.msg}`)} />
-              </div>
+            {/* Upper Right (50% height): Agent War Room */}
+            <div className="h-1/2 flex flex-col min-h-0">
+              <AgentWarRoom logs={logs} />
             </div>
 
-            {/* Bottom row: Code Diff Editor */}
-            <div className="flex-1 min-h-0">
+            {/* Lower Right (50% height): Code Editor */}
+            <div className="h-1/2 flex flex-col min-h-0">
               <CodeEditor
                 status={status}
                 displayedCode={displayedCode}
