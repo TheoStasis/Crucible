@@ -6,9 +6,10 @@ interface MissionHeaderProps {
   status: "HEALTHY" | "CRASHED" | "RESTORED";
   socketConnected: boolean;
   recoveryTime: string | null; // e.g. "3.2s"
+  onReset?: () => void;
 }
 
-export default function MissionHeader({ status, socketConnected, recoveryTime }: MissionHeaderProps) {
+export default function MissionHeader({ status, socketConnected, recoveryTime, onReset }: MissionHeaderProps) {
   const [uptime, setUptime] = useState(0);
 
   useEffect(() => {
@@ -81,8 +82,17 @@ export default function MissionHeader({ status, socketConnected, recoveryTime }:
         )}
       </div>
 
-      {/* Socket Indicator */}
-      <div className="flex items-center space-x-2 text-[10px] font-mono">
+      {/* Control Actions / Socket Indicator */}
+      <div className="flex items-center space-x-3 text-[10px] font-mono">
+        {onReset && (
+          <button
+            onClick={onReset}
+            className="flex items-center space-x-1.5 bg-rose-500/10 hover:bg-rose-500/20 active:bg-rose-500/30 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-lg font-bold tracking-wider uppercase transition-colors"
+          >
+            <span>RESET DEMO</span>
+          </button>
+        )}
+        
         <div className="flex items-center space-x-1.5 bg-slate-900 border border-white/5 px-2.5 py-1 rounded-lg">
           <span
             className={`h-1.5 w-1.5 rounded-full ${

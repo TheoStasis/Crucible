@@ -63,11 +63,13 @@ export default function DemoPage() {
   const [recoveryTime, setRecoveryTime] = useState<string | null>(null);
 
   const crashTimeRef = useRef<number | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   // 1. Raw WebSocket Client Hook
   useEffect(() => {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
     const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
     ws.onopen = () => {
       setSocketConnected(true);
@@ -132,8 +134,29 @@ export default function DemoPage() {
 
     return () => {
       ws.close();
+      wsRef.current = null;
     };
   }, []);
+
+  const handleReset = () => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ action: "reset" }));
+      setStatus("HEALTHY");
+      setRecoveryTime(null);
+      setDisplayedCode(INITIAL_CODE);
+      setIncomingCode("");
+      setLogs((prev) => [
+        ...prev,
+        {
+          agent: "System",
+          msg: "Demo reset requested. Re-arming the bug...",
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ]);
+    } else {
+      console.warn("WebSocket not connected, cannot reset");
+    }
+  };
 
   // 2. Typewriter Effect for Source Code X-Ray
   useEffect(() => {
@@ -195,6 +218,7 @@ export default function DemoPage() {
           status={status}
           socketConnected={socketConnected}
           recoveryTime={recoveryTime}
+          onReset={handleReset}
         />
 
         {/* 2-Column Dashboard Workspace */}
