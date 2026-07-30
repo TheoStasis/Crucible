@@ -164,7 +164,7 @@ async def poll_health():
 
 async def main():
     ws_host = os.getenv("WS_HOST", "0.0.0.0")
-    ws_port = int(os.getenv("WS_PORT", "5001"))
+    ws_port = 5001
     # Initialize asynchronous websockets server
     print(f"Starting Crucible Orchestrator WebSocket server on ws://{ws_host}:{ws_port}...")
     
