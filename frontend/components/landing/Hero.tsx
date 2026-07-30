@@ -1,22 +1,40 @@
-"use client";
-
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { GitBranch, Shield, Zap, RefreshCw } from "lucide-react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import ProvisioningCard from "@/components/provisioning/ProvisioningCard";
 
 // Lazy-load Hyperspeed WebGL background
 const Hyperspeed = dynamic(() => import("./Hyperspeed"), { ssr: false });
 
 export default function Hero() {
-  const router = useRouter();
-  const [repoUrl, setRepoUrl] = useState("github.com/crucible-demo/victim-registration-api");
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const hyperspeedRef = useRef<HTMLDivElement>(null);
 
-  const handleNavigate = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.push("/demo");
-  };
+  useEffect(() => {
+    // Register ScrollTrigger
+    gsap.registerPlugin(ScrollTrigger);
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) return;
+
+    const ctx = gsap.context(() => {
+      gsap.to(hyperspeedRef.current, {
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
+        opacity: 0,
+        ease: "none",
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -39,9 +57,12 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative w-screen h-screen min-h-[650px] overflow-hidden flex flex-col justify-center items-center bg-[#05070f] z-10">
+    <section ref={sectionRef} className="relative w-screen h-screen min-h-[650px] overflow-hidden flex flex-col justify-center items-center bg-[#05070f] z-10">
       {/* 1. WebGL Hyperspeed Background */}
-      <div className="absolute inset-0 z-0">
+      <div
+        ref={hyperspeedRef}
+        className="absolute inset-0 z-0"
+      >
         <Hyperspeed />
       </div>
 
@@ -75,33 +96,10 @@ export default function Hero() {
           Observe failures. Diagnose root causes. Generate patches. Recover automatically.
         </motion.p>
 
-        {/* Command Palette CTA */}
-        <motion.form
-          variants={itemVariants}
-          onSubmit={handleNavigate}
-          className="w-full max-w-md mt-10 p-2 bg-[#0b0d12]/90 border border-white/10 rounded-xl shadow-2xl backdrop-blur-md flex flex-col space-y-2 hover:border-white/20 transition-colors"
-        >
-          <div className="flex items-center space-x-2 px-3 pt-2">
-            <span className="h-2 w-2 rounded-full bg-neutral-600" />
-            <span className="h-2 w-2 rounded-full bg-neutral-600" />
-            <span className="text-[10px] text-neutral-500 font-mono">IMPORT ENGINE</span>
-          </div>
-          <div className="flex flex-col space-y-2 p-1">
-            <input
-              type="text"
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-              className="bg-neutral-950/80 border border-white/5 rounded-lg py-2.5 px-4 text-xs font-mono text-neutral-300 placeholder-neutral-600 focus:outline-none focus:border-white/10 transition-colors"
-              placeholder="github.com/company/project"
-            />
-            <button
-              type="submit"
-              className="w-full bg-white hover:bg-neutral-200 text-black py-2.5 rounded-lg text-xs font-mono font-medium tracking-wide uppercase transition-colors active:scale-[0.98]"
-            >
-              [ Import Repository ]
-            </button>
-          </div>
-        </motion.form>
+        {/* Provisioning Card (Transition Form) */}
+        <motion.div variants={itemVariants} className="w-full flex justify-center">
+          <ProvisioningCard />
+        </motion.div>
 
         {/* Capability Badges */}
         <motion.div

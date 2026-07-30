@@ -1,8 +1,7 @@
-"use client";
-
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useRef } from "react";
 import { GitPullRequest, Eye, ShieldAlert, Cpu, Hammer, ShieldCheck } from "lucide-react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 interface Step {
   id: number;
@@ -51,39 +50,83 @@ const steps: Step[] = [
 ];
 
 export default function Workflow() {
-  // Line animation variants
-  const pathVariants = {
-    hidden: { pathLength: 0 },
-    visible: {
-      pathLength: 1,
-      transition: { duration: 1.5, ease: "easeInOut" as const, delay: 0.3 },
-    },
-  };
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lineRef = useRef<SVGLineElement>(null);
+  const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const containerVariants = {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.15,
-      },
-    },
-  };
+  useEffect(() => {
+    // Register ScrollTrigger
+    gsap.registerPlugin(ScrollTrigger);
 
-  const cardVariants = {
-    hidden: { y: 25, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { duration: 0.6, ease: "easeOut" as const },
-    },
-  };
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      gsap.set(lineRef.current, { attr: { x2: "100%" } });
+      stepRefs.current.forEach((step) => {
+        if (!step) return;
+        gsap.set(step, { y: 0, opacity: 1 });
+        const iconContainer = step.querySelector(".icon-container");
+        const stepNum = step.querySelector(".step-num");
+        gsap.set([iconContainer, stepNum], { borderColor: "rgba(255,255,255,0.3)", color: "#fff" });
+      });
+      return;
+    }
+
+    const ctx = gsap.context(() => {
+      const line = lineRef.current;
+      if (!line) return;
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 70%",
+          end: "bottom 35%",
+          scrub: 0.5,
+        },
+      });
+
+      // 1. Draw connecting line
+      tl.fromTo(
+        line,
+        { attr: { x2: "0%" } },
+        { attr: { x2: "100%" }, ease: "none", duration: 2.0 }
+      );
+
+      // 2. Animate nodes sequentially
+      stepRefs.current.forEach((step, idx) => {
+        if (!step) return;
+        const iconContainer = step.querySelector(".icon-container");
+        const stepNum = step.querySelector(".step-num");
+        const position = (idx / stepRefs.current.length) * 2.0;
+
+        tl.fromTo(
+          step,
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.35, ease: "power1.out" },
+          position
+        ).to(
+          [iconContainer, stepNum],
+          {
+            borderColor: "rgba(255,255,255,0.35)",
+            color: "#ffffff",
+            duration: 0.15,
+          },
+          position + 0.1
+        );
+      });
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
     <section
       id="workflow"
       className="relative w-full min-h-[80vh] flex flex-col justify-center bg-[#0b0d12] py-20 px-6 border-b border-white/5 overflow-hidden"
     >
-      <div className="max-w-6xl mx-auto w-full relative z-20 flex flex-col items-center">
+      <div
+        ref={containerRef}
+        className="max-w-6xl mx-auto w-full relative z-20 flex flex-col items-center"
+      >
         {/* Title */}
         <div className="text-center max-w-xl mb-16">
           <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest">
@@ -99,11 +142,10 @@ export default function Workflow() {
 
         {/* 6-Step Workflow Nodes Grid */}
         <div className="w-full relative">
-          
           {/* Decorative Connecting Lines (Desktop Only) */}
           <div className="hidden lg:block absolute left-10 right-10 top-[28px] h-[2px] z-0 pointer-events-none">
             <svg className="w-full h-[4px] overflow-visible">
-              <motion.line
+              <line
                 x1="0"
                 y1="2"
                 x2="100%"
@@ -111,14 +153,11 @@ export default function Workflow() {
                 stroke="rgba(255,255,255,0.06)"
                 strokeWidth="2"
               />
-              <motion.line
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-100px" }}
-                variants={pathVariants}
+              <line
+                ref={lineRef}
                 x1="0"
                 y1="2"
-                x2="100%"
+                x2="0%"
                 y2="2"
                 stroke="rgba(255,255,255,0.2)"
                 strokeWidth="2"
@@ -126,24 +165,20 @@ export default function Workflow() {
             </svg>
           </div>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 relative z-10"
-          >
-            {steps.map((step) => (
-              <motion.div
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 relative z-10">
+            {steps.map((step, idx) => (
+              <div
                 key={step.id}
-                variants={cardVariants}
+                ref={(el) => {
+                  stepRefs.current[idx] = el;
+                }}
                 className="flex flex-col items-center lg:items-start space-y-4 group select-none text-center lg:text-left"
               >
                 {/* Node circle */}
-                <div className="h-14 w-14 rounded-full bg-neutral-950 border border-white/10 flex items-center justify-center text-neutral-400 group-hover:border-white/30 group-hover:text-white transition-all duration-300 relative shadow-xl">
+                <div className="icon-container h-14 w-14 rounded-full bg-neutral-950 border border-white/10 flex items-center justify-center text-neutral-400 group-hover:border-white/30 group-hover:text-white transition-all duration-300 relative shadow-xl">
                   {step.icon}
                   {/* Step counter */}
-                  <span className="absolute -top-1.5 -right-1.5 bg-neutral-900 border border-white/5 text-[9px] font-mono h-5 w-5 rounded-full flex items-center justify-center text-neutral-500 font-bold">
+                  <span className="step-num absolute -top-1.5 -right-1.5 bg-neutral-900 border border-white/5 text-[9px] font-mono h-5 w-5 rounded-full flex items-center justify-center text-neutral-500 font-bold transition-all duration-300">
                     {step.id}
                   </span>
                 </div>
@@ -157,9 +192,9 @@ export default function Workflow() {
                     {step.description}
                   </p>
                 </div>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
