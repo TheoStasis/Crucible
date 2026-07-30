@@ -3,37 +3,43 @@ const cors = require('cors');
 
 const app = express();
 const port = 3001;
+
 let isCrashed = false;
 
+// Middleware
 app.use(express.json());
 app.use(cors());
 
+// Healthy endpoint
 app.get('/api/health', (req, res) => {
-  res.status(isCrashed ? 500 : 200).json({ status: isCrashed ? 'error' : 'ok' });
+  if (isCrashed) {
+    return res.status(500).json({ status: 'error', message: 'Server is in crashed state' });
+  }
+  res.json({ status: 'ok' });
 });
 
+// Target endpoint with intentional bug
 app.post('/api/register', (req, res, next) => {
   try {
     if (req.body.crash === true) {
-      isCrashed = true;
-      next(new Error('FATAL: Intentional massive memory error to simulate a server crash'));
-    } else {
-      res.json({ success: true, message: 'Registered successfully' });
+      throw new Error('FATAL: Intentional massive memory error to simulate a server crash');
     }
+    res.json({ success: true, message: 'Registered successfully' });
+    isCrashed = false; // Reset crash state after successful registration
   } catch (err) {
+    isCrashed = true; // Set crash state if an error occurs
     next(err);
   }
 });
 
+// Global error handler
 app.use((err, req, res, next) => {
-  isCrashed = true;
   console.error('Server crashed:', err.stack);
   res.status(500).json({
     error: 'Internal Server Error',
     message: err.message,
     stack: err.stack
   });
-  // do not call next() here to prevent further error handling
 });
 
 app.listen(port, () => {
