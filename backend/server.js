@@ -3,14 +3,13 @@ const cors = require('cors');
 
 const app = express();
 const port = 3001;
-
 let isCrashed = false;
 
 // Middleware
 app.use(express.json());
 app.use(cors());
 
-// Healthy endpoint
+// Health endpoint
 app.get('/api/health', (req, res) => {
   if (isCrashed) {
     return res.status(500).json({ status: 'error', message: 'Server is in crashed state' });
@@ -25,15 +24,14 @@ app.post('/api/register', (req, res, next) => {
       throw new Error('FATAL: Intentional massive memory error to simulate a server crash');
     }
     res.json({ success: true, message: 'Registered successfully' });
-    isCrashed = false; // Reset crash state after successful registration
   } catch (err) {
-    isCrashed = true; // Set crash state if an error occurs
     next(err);
   }
 });
 
 // Global error handler
 app.use((err, req, res, next) => {
+  isCrashed = true;
   console.error('Server crashed:', err.stack);
   res.status(500).json({
     error: 'Internal Server Error',
