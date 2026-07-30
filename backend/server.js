@@ -4,12 +4,17 @@ const cors = require('cors');
 const app = express();
 const port = 3001;
 
+let isCrashed = false;
+
 // Middleware
 app.use(express.json());
 app.use(cors());
 
 // Healthy endpoint
 app.get('/api/health', (req, res) => {
+  if (isCrashed) {
+    return res.status(500).json({ status: 'error', message: 'Server is in crashed state' });
+  }
   res.json({ status: 'ok' });
 });
 
@@ -27,6 +32,7 @@ app.post('/api/register', (req, res, next) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
+  isCrashed = true;
   console.error('Server crashed:', err.stack);
   res.status(500).json({
     error: 'Internal Server Error',
