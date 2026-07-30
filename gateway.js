@@ -6,10 +6,10 @@ const BACKEND_PORT = 3001;
 const WS_PORT = 5001;
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400'
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'access-control-allow-headers': 'Content-Type, Authorization',
+  'access-control-max-age': '86400'
 };
 
 const server = http.createServer((req, res) => {
