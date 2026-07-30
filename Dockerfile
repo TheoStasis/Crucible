@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r orchestrator/requirements.txt
 COPY backend/ ./backend/
 COPY orchestrator/ ./orchestrator/
 COPY supervisord.conf ./
-COPY proxy.js ./
+COPY gateway.js ./
 
 # Expose port (Railway overrides this with PORT environment variable)
 EXPOSE 80
