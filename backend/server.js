@@ -5,78 +5,95 @@ const helmet = require('helmet');
 const app = express();
 const port = 3001;
 
-// Middleware
 app.use(cors());
-app.use(express.json());
-app.use(helmet());
+app.use(
+  helmet({
+    frameguard: false,
+  })
+);
 
-// Local error handler for /api/register
-const registerErrorHandler = (err, req, res, next) => {
-  if (err.message === 'Server has crashed due to request') {
-    res.status(500).json({
-      status: 'error',
-      message: 'Server is in a crashed state',
-    });
-  } else if (err instanceof Error && [401, 400, 404, 500].includes(err.status)) {
-    res.status(err.status || 500).json({
-      status: 'error',
-      message: err.message,
-    });
-  } else {
-    res.status(500).json({
-      status: 'error',
-      message: 'Internal server error',
-    });
-  }
-};
-
-// Global error handling middleware
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled rejection at:', promise, 'reason:', reason);
-});
-
+// Uncaught exception and unhandled rejection handlers
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception at:', err.stack);
+  console.error("Uncaught exception at:", err.stack);
+  process.exit(1); // exit with non-zero code
 });
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error("Unhandled rejection at:", promise, "reason:", reason);
+  process.exit(1); // exit with non-zero code
+});
+
+// Global error handler
 const globalErrorHandler = (err, req, res, next) => {
   let status = 500;
-  if (err.status) {
+  if (
+    err &&
+    err.status &&
+    (400 <= err.status &&
+      err.status < 600)
+  ) {
     status = err.status;
+  }
+
+  if (res.headersSent) {
+    return next(err); // pass the error to the next middleware
   }
 
   res.status(status).json({
     status: 'error',
-    message: err.message,
+    message: err.message
   });
+  res.end(); // ensure response ends
+  next(); // not required here as response has been sent
 };
 
-// Healthy endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
-// Target endpoint with bug fixed
-app.post('/api/register', (req, res, next) => {
+// Health endpoint
+app.get('/api/health', (req, res, next) => {
   try {
-    if (req.body && req.body.crash === true && process.env.NODE_ENV !== 'development') {
-      next(new Error({
-        message: 'Server has crashed due to request',
-        status: 500,
-      }));
-    }
-    res.json({ success: true, message: 'Registered successfully' });
-  } catch (err) {
-    if (!err.status && !(err instanceof Error)) {
-      err = {
-        status: 500,
-        message: 'Internal server error',
-      };
-    }
-    registerErrorHandler(err, req, res, next);
+    res.json({ status: 'ok' });
+  } catch (error) {
+    next(error);
   }
 });
 
+// Target endpoint
+app.post('/api/register', (req, res, next) => {
+  try {
+    if (req.body && 'crash' in req.body && req.body.crash === true) {
+      throw new Error('Test crash');
+    } else {
+      res.status(200).json({ success: true, message: 'Registered successfully' });
+      res.end(); // ensure response ends
+    }
+  } catch (err) {
+    next(err); // pass the error to the global error handler
+  }
+});
+
+app.use(globalErrorHandler);
+
+// Not found handler
+app.use((req, res, next) => {
+  if (res.headersSent) {
+    return next(); // if headers have been sent, don't send another response
+  }
+  res.status(404).json({
+    status: 'error',
+    message: 'Page not found'
+  });
+  res.end(); // ensure response ends
+  next();
+});
+
+// Ensure next() is always called in the catch block
+app.use((err, req, res, next) => { // note the changed parameters
+  res.status(500).json({
+    status: 'error',
+    message: 'An internal server error occurred.'
+  });
+  res.end(); // ensure response ends
+});
+
 app.listen(port, () => {
-  console.log(`Victim backend listening on port ${port}`);
+  console.log(`Listening on port ${port}`);
 });
