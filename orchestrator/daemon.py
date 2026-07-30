@@ -73,9 +73,10 @@ def sanitize_code(raw_output):
 async def check_health():
     """Runs synchronous requests.get inside a thread pool to prevent blocking asyncio loop."""
     loop = asyncio.get_running_loop()
+    backend_url = os.getenv("BACKEND_URL", "http://localhost:3001")
     return await loop.run_in_executor(
         None, 
-        lambda: requests.get("http://localhost:3001/api/health", timeout=1.5)
+        lambda: requests.get(f"{backend_url}/api/health", timeout=1.5)
     )
 
 async def trigger_recovery():
@@ -162,11 +163,13 @@ async def poll_health():
         await asyncio.sleep(2)
 
 async def main():
-    # Initialize asynchronous websockets server on localhost:8080
-    print("Starting Crucible Orchestrator WebSocket server on ws://localhost:8080...")
+    ws_host = os.getenv("WS_HOST", "0.0.0.0")
+    ws_port = int(os.getenv("WS_PORT", "8080"))
+    # Initialize asynchronous websockets server
+    print(f"Starting Crucible Orchestrator WebSocket server on ws://{ws_host}:{ws_port}...")
     
-    # Start WS server (accepts CORS from localhost:3000 by default)
-    async with websockets.serve(ws_handler, "localhost", 8080):
+    # Start WS server
+    async with websockets.serve(ws_handler, ws_host, ws_port):
         print("Starting health polling engine...")
         await poll_health()
 

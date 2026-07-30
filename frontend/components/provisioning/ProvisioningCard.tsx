@@ -61,7 +61,8 @@ export default function ProvisioningCard() {
 
     // Send reset message to orchestrator WebSocket to re-arm the bug
     try {
-      const ws = new WebSocket("ws://localhost:8080");
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
+      const ws = new WebSocket(wsUrl);
       ws.onopen = () => {
         ws.send(JSON.stringify({ action: "reset" }));
         ws.close();

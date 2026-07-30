@@ -66,7 +66,8 @@ export default function DemoPage() {
 
   // 1. Raw WebSocket Client Hook
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8080");
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
+    const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       setSocketConnected(true);
@@ -74,7 +75,7 @@ export default function DemoPage() {
         ...prev,
         {
           agent: "System",
-          msg: "Connected to Orchestrator at ws://localhost:8080",
+          msg: `Connected to Orchestrator at ${wsUrl}`,
           timestamp: new Date().toLocaleTimeString(),
         },
       ]);
@@ -158,7 +159,8 @@ export default function DemoPage() {
 
   const handleRegister = async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/register", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const res = await fetch(`${apiUrl}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ crash: true }),
