@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Terminal, Shield, AlertCircle, CheckCircle, Code, Server } from "lucide-react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 type ServiceStatus = "HEALTHY" | "CRASHED" | "PATCHING" | "RESTORED";
 
@@ -17,10 +19,27 @@ export default function DashboardPreview() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cycleStartedRef = useRef(false);
 
-  // States cycle: Healthy -> Crashed -> Patching -> Restored -> Healthy
+  // States cycle: Healthy -> Crashed -> Patching -> Restored
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    // Register ScrollTrigger
+    gsap.registerPlugin(ScrollTrigger);
+
+    const trigger = ScrollTrigger.create({
+      trigger: containerRef.current,
+      start: "top 60%",
+      onEnter: () => {
+        if (!cycleStartedRef.current) {
+          cycleStartedRef.current = true;
+          runCycle();
+        }
+      },
+    });
+
+    const timers: NodeJS.Timeout[] = [];
+
     const runCycle = () => {
       // Step 1: Healthy
       setStatus("HEALTHY");
@@ -31,43 +50,48 @@ export default function DashboardPreview() {
       ]);
 
       // Step 2: Crash (after 4s)
-      timer = setTimeout(() => {
-        setStatus("CRASHED");
-        setLogs((prev) => [
-          ...prev,
-          { source: "system", message: "CRITICAL: HTTP POST /api/register - Unhandled server exception.", time: "12:00:34" },
-          { source: "watcher", message: "Process exited unexpectedly. Sentinel probe triggered.", time: "12:00:34" },
-          { source: "system", message: "Dumping stack trace to AST compiler...", time: "12:00:35" },
-        ]);
-
-        // Step 3: Patching (after 3s)
-        timer = setTimeout(() => {
-          setStatus("PATCHING");
+      timers.push(
+        setTimeout(() => {
+          setStatus("CRASHED");
           setLogs((prev) => [
             ...prev,
-            { source: "agent", message: "AI Agent War Room spawned. Compiling AST code graph...", time: "12:00:38" },
-            { source: "agent", message: "Pinpointed division-by-zero memory leak in server.js:L19.", time: "12:00:39" },
-            { source: "patch", message: "Compiling code hotpatch. Executing safety verification harness...", time: "12:00:40" },
+            { source: "system", message: "CRITICAL: HTTP POST /api/register - Unhandled server exception.", time: "12:00:34" },
+            { source: "watcher", message: "Process exited unexpectedly. Sentinel probe triggered.", time: "12:00:34" },
+            { source: "system", message: "Dumping stack trace to AST compiler...", time: "12:00:35" },
           ]);
 
-          // Step 4: Restored (after 4s)
-          timer = setTimeout(() => {
-            setStatus("RESTORED");
-            setLogs((prev) => [
-              ...prev,
-              { source: "patch", message: "Verification success. Hotpatch injected cleanly.", time: "12:00:44" },
-              { source: "system", message: "Restarting isolated micro-container. Service health check: OK", time: "12:00:45" },
-            ]);
+          // Step 3: Patching (after 3s)
+          timers.push(
+            setTimeout(() => {
+              setStatus("PATCHING");
+              setLogs((prev) => [
+                ...prev,
+                { source: "agent", message: "AI Agent War Room spawned. Compiling AST code graph...", time: "12:00:38" },
+                { source: "agent", message: "Pinpointed division-by-zero memory leak in server.js:L19.", time: "12:00:39" },
+                { source: "patch", message: "Compiling code hotpatch. Executing safety verification harness...", time: "12:00:40" },
+              ]);
 
-            // Cycle restarts back to Healthy in 6s
-            timer = setTimeout(runCycle, 6000);
-          }, 4000);
-        }, 3000);
-      }, 4000);
+              // Step 4: Restored (after 4s)
+              timers.push(
+                setTimeout(() => {
+                  setStatus("RESTORED");
+                  setLogs((prev) => [
+                    ...prev,
+                    { source: "patch", message: "Verification success. Hotpatch injected cleanly.", time: "12:00:44" },
+                    { source: "system", message: "Restarting isolated micro-container. Service health check: OK", time: "12:00:45" },
+                  ]);
+                }, 4000)
+              );
+            }, 3000)
+          );
+        }, 4000)
+      );
     };
 
-    runCycle();
-    return () => clearTimeout(timer);
+    return () => {
+      trigger.kill();
+      timers.forEach((t) => clearTimeout(t));
+    };
   }, []);
 
   // Keep logs scrolled to bottom INSIDE the log box — never the page
@@ -93,6 +117,7 @@ export default function DashboardPreview() {
 
   return (
     <section
+      ref={containerRef}
       id="dashboard-preview"
       className="relative w-full min-h-[90vh] flex flex-col justify-center bg-[#0b0d12] py-20 px-6 border-b border-white/5"
     >

@@ -1,28 +1,49 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { AlertCircle, Search, Hammer, CheckCircle, ChevronRight } from "lucide-react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 type FlowStep = "CRASH" | "DIAGNOSIS" | "PATCH" | "RECOVERED";
 
 export default function Philosophy() {
   const [activeStep, setActiveStep] = useState<FlowStep>("CRASH");
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const sequence: FlowStep[] = ["CRASH", "DIAGNOSIS", "PATCH", "RECOVERED"];
-    let idx = 0;
+    // Register ScrollTrigger
+    gsap.registerPlugin(ScrollTrigger);
 
-    const interval = setInterval(() => {
-      idx = (idx + 1) % sequence.length;
-      setActiveStep(sequence[idx]);
-    }, 2500);
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      setActiveStep("RECOVERED");
+      return;
+    }
 
-    return () => clearInterval(interval);
+    const trigger = ScrollTrigger.create({
+      trigger: containerRef.current,
+      start: "top 80%",
+      end: "bottom 30%",
+      onUpdate: (self) => {
+        const progress = self.progress;
+        if (progress < 0.25) {
+          setActiveStep("CRASH");
+        } else if (progress < 0.5) {
+          setActiveStep("DIAGNOSIS");
+        } else if (progress < 0.75) {
+          setActiveStep("PATCH");
+        } else {
+          setActiveStep("RECOVERED");
+        }
+      },
+    });
+
+    return () => trigger.kill();
   }, []);
 
   return (
     <section
+      ref={containerRef}
       id="philosophy"
       className="relative w-full min-h-[60vh] flex flex-col justify-center bg-[#0b0d12] py-20 px-6 border-b border-white/5 overflow-hidden"
     >
