@@ -59,6 +59,17 @@ export default function ProvisioningCard() {
     setCurrentState("preparing");
     setStatusText("Preparing Sandbox...");
 
+    // Send reset message to orchestrator WebSocket to re-arm the bug
+    try {
+      const ws = new WebSocket("ws://localhost:8080");
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ action: "reset" }));
+        ws.close();
+      };
+    } catch (err) {
+      console.error("Failed to reset backend state", err);
+    }
+
     // Transition smoothly to provisioning timeline card after 800ms
     timerRef.current = setTimeout(() => {
       setCurrentState("provisioning");
