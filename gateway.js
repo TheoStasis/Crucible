@@ -3,7 +3,7 @@ const net = require('net');
 
 const PORT = process.env.PORT || 80;
 const BACKEND_PORT = 3001;
-const WS_PORT = 8080;
+const WS_PORT = 5001;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
