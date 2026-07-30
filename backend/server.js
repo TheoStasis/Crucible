@@ -4,13 +4,30 @@ const cors = require('cors');
 const app = express();
 const port = 3001;
 
+let isCrashed = false;
+
 // Middleware
 app.use(express.json());
 app.use(cors());
 
-// Healthy endpoint
+// Route not found middleware
+app.use((req, res) => {
+  res.status(404).json({ status: 'error', message: 'Route not found' });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err.stack);
+  if (isCrashed) {
+    res.status(500).json({ status: 'error', message: 'Server is in crashed state', stack: err.stack });
+  } else {
+    res.status(500).json({ error: 'Internal Server Error', message: err.message, stack: err.stack });
+  }
+});
+
+// Health endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: isCrashed ? 'crashed' : 'ok' });
 });
 
 // Target endpoint with intentional bug
@@ -21,18 +38,10 @@ app.post('/api/register', (req, res, next) => {
     }
     res.json({ success: true, message: 'Registered successfully' });
   } catch (err) {
-    next(err);
+    isCrashed = true;
+    console.error('Server crashed:', err.stack);
+    res.status(418).send({ status: 'error', message: 'Server crashed. Please retry later.' });
   }
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('Server crashed:', err.stack);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message,
-    stack: err.stack
-  });
 });
 
 app.listen(port, () => {
