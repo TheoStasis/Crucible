@@ -72,7 +72,7 @@ async def trigger_recovery():
                     "content": f"Analyze this Node.js code, find the intentional crash, and explain the bug in one sentence.\n\nCode:\n{broken_code}"
                 }
             ],
-            model="llama3-8b-8192", 
+            model="llama-3.1-8b-instant", 
         )
         explanation = diag_resp.choices[0].message.content.strip()
     except Exception as e:
@@ -91,7 +91,7 @@ async def trigger_recovery():
                     "content": f"Rewrite this entire code to fix the bug. Output ONLY raw javascript. No markdown formatting or backticks.\n\nCode:\n{broken_code}"
                 }
             ],
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
         )
         raw_patch = heal_resp.choices[0].message.content
     except Exception as e:
