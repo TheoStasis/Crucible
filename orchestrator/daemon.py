@@ -21,12 +21,27 @@ client = AsyncGroq(api_key=GROQ_API_KEY)
 connected_clients = set()
 
 async def ws_handler(websocket):
-    """Handles incoming WebSocket connections."""
-    # websockets library natively accepts all origins (CORS) by default
-    # unless specifically restricted, so it will accept from localhost:3000
+    """Handles incoming WebSocket connections and client actions."""
     connected_clients.add(websocket)
     try:
-        await websocket.wait_closed()
+        async for message in websocket:
+            try:
+                data = json.loads(message)
+                if data.get("action") == "reset":
+                    print("Received reset request from client. Re-arming the bug...")
+                    backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
+                    source = os.path.join(backend_dir, "server.broken.js")
+                    dest = os.path.join(backend_dir, "server.js")
+                    try:
+                        import shutil
+                        shutil.copyfile(source, dest)
+                        print("Bug re-armed successfully.")
+                        # Broadcast log to all clients
+                        await broadcast({"event": "log", "agent": "System", "msg": "Victim server re-armed and reset to broken state."})
+                    except Exception as e:
+                        print(f"Failed to copy file: {e}")
+            except Exception as e:
+                print(f"Error handling message: {e}")
     except websockets.ConnectionClosed:
         pass
     finally:
@@ -143,7 +158,6 @@ async def poll_health():
                 await trigger_recovery()
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             print(f"Server unreachable or timeout: {e}")
-            await trigger_recovery()
         
         await asyncio.sleep(2)
 
