@@ -73,7 +73,7 @@ def sanitize_code(raw_output):
 async def check_health():
     """Runs synchronous requests.get inside a thread pool to prevent blocking asyncio loop."""
     loop = asyncio.get_running_loop()
-    backend_url = os.getenv("BACKEND_URL", "http://localhost:3001")
+    backend_url = os.getenv("BACKEND_URL", "http://127.0.0.1:3001")
     return await loop.run_in_executor(
         None, 
         lambda: requests.get(f"{backend_url}/api/health", timeout=1.5)
