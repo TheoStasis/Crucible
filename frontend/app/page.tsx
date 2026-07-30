@@ -10,6 +10,7 @@ import Workflow from "@/components/landing/Workflow";
 import Features from "@/components/landing/Features";
 import Philosophy from "@/components/landing/Philosophy";
 import Footer from "@/components/landing/Footer";
+import NarrativeBackground from "@/components/landing/NarrativeBackground";
 
 export default function Home() {
   // Ensure the page always starts at the top — prevents browser scroll
@@ -20,8 +21,12 @@ export default function Home() {
       window.scrollTo({ top: 0, left: 0 });
     }
   }, []);
+
   return (
     <div className="relative min-h-screen bg-[#0b0d12] text-slate-100 flex flex-col justify-between selection:bg-white selection:text-black">
+      {/* Narrative V2 Background Layers */}
+      <NarrativeBackground />
+
       {/* Scroll-reactive navigation */}
       <Navbar />
 
